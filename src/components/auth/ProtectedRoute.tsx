@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -22,17 +22,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
         if (docSnap.exists()) {
           setUserRole(docSnap.data().role);
         } else {
-          setUserRole('user'); // Default to 'user' if no role found in Firestore
+          setUserRole('user');
         }
       } else {
         setIsAuthenticated(false);
         setUserRole(null);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated !== false && userRole !== undefined) {
+      setLoading(false);
+    }
+    if (isAuthenticated === false && userRole === null) {
+       setLoading(false);
+    }
+  }, [isAuthenticated, userRole]);
 
   if (loading) {
     return (
@@ -42,11 +50,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || userRole === null) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center">

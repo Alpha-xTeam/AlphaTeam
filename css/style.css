@@ -1,0 +1,28 @@
+.news-content .text-content {
+    white-space: pre-line;
+}
+
+@media (max-width: 767px) {
+  .dialog-content {
+    border-radius: 0 !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+  }
+  .dialog-content .carousel img {
+    max-height: 180px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .dialog-content {
+    border-radius: 1.5rem !important;
+    min-height: auto !important;
+    max-height: 85vh !important;
+    height: auto !important;
+  }
+  .dialog-content .carousel img {
+    max-height: 420px !important;
+  }
+}

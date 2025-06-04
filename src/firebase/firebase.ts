@@ -2,7 +2,8 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth"; // Import Auth
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, Timestamp } from "firebase/firestore"; // Import Firestore and other necessary functions
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, Timestamp, orderBy, limit } from "firebase/firestore"; // Import Firestore and other necessary functions
+import { uploadFileToGofile, deleteGofileFile } from './gofile'; // Import GoFile functions
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -37,11 +38,12 @@ export const handleSignoutClick = () => {
 };
 
 // Subject Management Functions
-export const addSubject = async (name: string, stageId: string) => {
+export const addSubject = async (name: string, stageId: string, course: '1' | '2') => {
   try {
     const docRef = await addDoc(collection(db, "subjects"), {
       name,
       stageId,
+      course, // حفظ الكورس فعليًا
       createdAt: Timestamp.now(),
     });
     return docRef.id;
@@ -61,6 +63,7 @@ export const getSubjects = async () => {
         id: doc.id,
         name: data.name || '',
         stageId: data.stageId || '',
+        course: data.course || '2', // جلب الكورس من قاعدة البيانات (افتراضي 2)
         createdAt: data.createdAt || null,
       };
     });
@@ -70,16 +73,19 @@ export const getSubjects = async () => {
   }
 };
 
-export const updateSubject = async (id: string, name: string, stageId: string) => {
+export const updateSubject = async (
+  id: string,
+  name: string,
+  stageId: string,
+  course?: string // أضف هذا الباراميتر
+) => {
   try {
     const subjectRef = doc(db, "subjects", id);
-    await updateDoc(subjectRef, {
-      name,
-      stageId,
-    });
-  } catch (e) {
-    console.error("Error updating subject: ", e);
-    throw e;
+    const updateData: any = { name, stageId };
+    if (course) updateData.course = course;
+    await updateDoc(subjectRef, updateData);
+  } catch (err) {
+    throw err;
   }
 };
 
@@ -109,8 +115,6 @@ export const getStages = async () => {
     throw e;
   }
 };
-
-import { uploadFileToGofile, deleteGofileFile } from './gofile';
 
 export const addLecture = async (subjectId: string, title: string, description: string, file: File) => {
   try {
@@ -219,6 +223,35 @@ export const deleteLecture = async (id: string, fileId: string) => {
     await deleteDoc(doc(db, "lectures", id));
   } catch (e) {
     console.error("Error deleting lecture: ", e);
+    throw e;
+  }
+};
+
+export const getLatestLectures = async (numLectures = 5) => {
+  try {
+    const lecturesCollectionRef = collection(db, "lectures");
+    const q = query(
+      lecturesCollectionRef,
+      orderBy("createdAt", "desc"),
+      limit(numLectures)
+    );
+    const querySnapshot = await getDocs(q);
+    const lectures = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        subjectId: data.subjectId || '',
+        title: data.title || '',
+        description: data.description || '',
+        fileId: data.fileId || '', // Retrieve Gofile File ID
+        fileName: data.fileName || '',
+        fileUrl: data.fileUrl || '', // Retrieve Gofile File URL
+        createdAt: data.createdAt || null,
+      };
+    });
+    return lectures;
+  } catch (e) {
+    console.error("Error getting latest lectures: ", e);
     throw e;
   }
 };

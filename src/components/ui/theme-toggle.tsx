@@ -11,7 +11,7 @@ const ThemeToggle: React.FC = () => {
       variant="outline"
       size="icon"
       onClick={toggleTheme}
-      className="fixed bottom-4 right-4 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110"
+      className="rounded-full shadow-lg transition-all duration-300 hover:scale-110"
     >
       {theme === 'light' ? (
         <Moon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

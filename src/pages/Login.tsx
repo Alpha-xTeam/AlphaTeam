@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, LogIn, Chrome } from 'lucide-react'; // Keeping Chrome as Google icon alternative
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth, db } from '@/firebase/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion'; // For animations
 import { logActivity } from '@/firebase/activityLogger';
 
@@ -36,16 +36,27 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        setError('يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول. تحقق من صندوق الوارد الخاص بك.');
+        await auth.signOut(); // Sign out the user if email is not verified
+        return;
+      }
+
       // Removed activity logging for 'login' as per new requirements.
       // This type is not in ALLOWED_ACTIVITY_TYPES in activityLogger.ts.
 
       navigate('/'); // Redirect to home page on successful login
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
       } else if (err.code === 'auth/invalid-email') {
         setError('صيغة البريد الإلكتروني غير صحيحة.');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('تم تعطيل هذا الحساب. يرجى التواصل مع المسؤول.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('تم حظر هذا الحساب مؤقتاً بسبب محاولات تسجيل الدخول الفاشلة المتعددة. يرجى المحاولة لاحقاً أو إعادة تعيين كلمة المرور.');
       } else {
         setError('حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       }
@@ -59,17 +70,27 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Save user info to Firestore if it's a new user or update existing
+      // Check if user already exists in Firestore
       const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        email: user.email,
-        fullName: user.displayName || '', // Use displayName for fullName
-        role: 'user', // Default role for new users
-        createdAt: new Date(),
-      }, { merge: true }); // Use merge: true to update if exists, create if not
+      const userDoc = await getDoc(userRef);
 
-      // Removed activity logging for 'google_login' as per new requirements.
-      // This type is not in ALLOWED_ACTIVITY_TYPES in activityLogger.ts.
+      if (userDoc.exists()) {
+        // If user exists, preserve their existing role
+        await setDoc(userRef, {
+          email: user.email,
+          fullName: user.displayName || '',
+          // Keep existing role
+          updatedAt: new Date(),
+        }, { merge: true });
+      } else {
+        // If new user, set default role
+        await setDoc(userRef, {
+          email: user.email,
+          fullName: user.displayName || '',
+          role: 'user', // Default role for new users
+          createdAt: new Date(),
+        });
+      }
 
       navigate('/'); // Redirect to home page on successful login
     } catch (err: any) {

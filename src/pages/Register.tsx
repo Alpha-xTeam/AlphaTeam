@@ -5,11 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Chrome, UserPlus } from 'lucide-react';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendEmailVerification } from 'firebase/auth';
 import { auth, db } from '@/firebase/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion'; // For animations
 import { logActivity } from '@/firebase/activityLogger';
+import { toast } from "@/components/ui/use-toast"; // Import toast
+
+const avatarList = [
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047283/uchgfbvn93vankxi8ngt.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047283/uemk18ecy4s9l5hkusfg.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047283/ldf6gddraviuecktdv6r.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047283/ypkhs51swkfc6dlwjvsw.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047283/ezpug86k3gkypdx7u0bd.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047282/mwqpkyy8mnhq5eybpxgr.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047282/uivpymjbxjfpoiy0i659.png",
+  "https://res.cloudinary.com/dmao2zbvt/image/upload/v1749047282/insghjql3cf7hep1aidk.png"
+];
 
 const Register = () => {
   const [fullName, setFullName] = useState(''); // Changed from firstName, lastName
@@ -17,6 +29,9 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(avatarList[0]);
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
+  const [googleUser, setGoogleUser] = useState<any>(null);
   const navigate = useNavigate();
 
   const validateEmail = (email: string) => {
@@ -62,23 +77,35 @@ const Register = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Send email verification
+      await sendEmailVerification(user);
+
       // Save additional user info to Firestore
       await setDoc(doc(db, "users", user.uid), {
         fullName: fullName, // Changed to fullName
         email: email,
+        avatar: selectedAvatar, // Include selected avatar
         role: 'user', // Default role for new users
         createdAt: new Date(),
       });
 
-      // Log activity
+      // تسجيل نشاط إنشاء الحساب
       await logActivity({
-        type: 'register', // Changed to 'register'
+        type: 'register',
         userId: user.uid,
         username: email,
-        details: `مستخدم جديد ${email} سجل باستخدام البريد الإلكتروني/كلمة المرور.`,
+        details: `قام المستخدم ${fullName || email} بإنشاء حساب جديد`,
       });
 
-      navigate('/'); // Redirect to home page on successful registration
+      // Inform the user to verify their email
+      toast({
+        title: "تم إرسال رابط التحقق",
+        description: "يرجى التحقق من بريدك الإلكتروني لتأكيد حسابك قبل تسجيل الدخول.",
+        variant: "default", // You can adjust the variant (e.g., "success", "warning")
+        duration: 5000, // Duration in milliseconds
+      });
+
+      navigate('/login'); // Redirect to login page on successful registration
     } catch (err: any) {
       console.error("Registration error:", err);
       if (err.code === 'auth/email-already-in-use') {
@@ -100,24 +127,9 @@ const Register = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Save user info to Firestore if it's a new user or update existing
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        email: user.email,
-        fullName: user.displayName || '', // Use displayName for fullName
-        role: 'user', // Default role for new users
-        createdAt: new Date(),
-      }, { merge: true }); // Use merge: true to update if exists, create if not
-
-      // Log activity
-      await logActivity({
-        type: 'register', // Changed to 'register'
-        userId: user.uid,
-        username: user.email || 'N/A',
-        details: `مستخدم جديد ${user.email} سجل باستخدام Google.`,
-      });
-
-      navigate('/'); // Redirect to home page on successful registration
+      // Store user temporarily and show avatar dialog
+      setGoogleUser(user);
+      setShowAvatarDialog(true);
     } catch (err: any) {
       console.error("Google registration error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
@@ -131,6 +143,34 @@ const Register = () => {
       } else {
         setError('فشل التسجيل باستخدام Google. يرجى المحاولة مرة أخرى. (قد تكون مشكلة في أذونات Firebase)');
       }
+    }
+  };
+
+  // Handle avatar selection after Google registration
+  const handleGoogleAvatarSelect = async (avatar: string) => {
+    if (!googleUser) return;
+    try {
+      const userRef = doc(db, "users", googleUser.uid);
+      await setDoc(userRef, {
+        email: googleUser.email,
+        fullName: googleUser.displayName || '',
+        avatar: avatar,
+        role: 'user',
+        createdAt: new Date(),
+      }, { merge: true });
+
+      await logActivity({
+        type: 'register',
+        userId: googleUser.uid,
+        username: googleUser.email || 'N/A',
+        details: `مستخدم جديد ${googleUser.email} سجل باستخدام Google.`,
+      });
+
+      setShowAvatarDialog(false);
+      setGoogleUser(null);
+      navigate('/'); // Redirect to home page after avatar selection
+    } catch (err: any) {
+      setError('حدث خطأ أثناء حفظ الأفتار. يرجى المحاولة مرة أخرى.');
     }
   };
 
@@ -224,6 +264,23 @@ const Register = () => {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block mb-2 font-medium">اختر الأفتار:</label>
+                <div className="flex flex-wrap gap-4 justify-center mb-4">
+                  {avatarList.map((avatar, idx) => (
+                    <img
+                      key={idx}
+                      src={avatar}
+                      alt="avatar"
+                      style={{
+                        border: selectedAvatar === avatar ? '2px solid #2563eb' : '2px solid transparent',
+                        width: 60, height: 60, borderRadius: '50%', cursor: 'pointer'
+                      }}
+                      onClick={() => setSelectedAvatar(avatar)}
+                    />
+                  ))}
+                </div>
+              </div>
               {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-sm text-center mt-4">{error}</motion.p>}
               <Button type="submit" className="w-full py-3 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all duration-300 rounded-lg">
                 تسجيل
@@ -250,6 +307,34 @@ const Register = () => {
           </CardContent>
         </Card>
       </motion.div>
+      {/* Dialog for Google avatar selection */}
+      {showAvatarDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-card rounded-xl p-8 shadow-2xl max-w-xs w-full">
+            <h2 className="text-xl font-bold mb-4 text-center">اختر صورة الأفتار</h2>
+            <div className="flex flex-wrap gap-4 justify-center mb-4">
+              {avatarList.map((avatar, idx) => (
+                <img
+                  key={idx}
+                  src={avatar}
+                  alt="avatar"
+                  style={{
+                    border: selectedAvatar === avatar ? '2px solid #2563eb' : '2px solid transparent',
+                    width: 60, height: 60, borderRadius: '50%', cursor: 'pointer'
+                  }}
+                  onClick={() => setSelectedAvatar(avatar)}
+                />
+              ))}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => handleGoogleAvatarSelect(selectedAvatar)}
+            >
+              حفظ الأفتار والمتابعة
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

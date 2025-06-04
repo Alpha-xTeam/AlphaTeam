@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // السماح بقراءة البيانات للجميع (حتى غير المصادق عليهم)
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // السماح للمسؤولين فقط بإضافة أو تعديل المواد الدراسية
+    match /subjects/{subjectId} {
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // السماح للمسؤولين فقط بإضافة أو تعديل المحاضرات
+    match /lectures/{lectureId} {
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // السماح للمسؤولين والمالكين بإضافة أو تعديل الأخبار
+    match /news/{newsId} {
+      allow write: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner');
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+      allow read: if true;
+    }
+
+    // السماح للمسؤولين والمالكين بإضافة أو تعديل أو حذف المصادر
+    match /resources/{resourceId} {
+      allow create, update, delete: if request.auth != null &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner');
+      allow read: if true;
+    }
+
+    // السماح بإنشاء حسابات جديدة وتحديث بيانات المستخدمين المصادق عليهم
+    match /users/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
+      );
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // السماح بتسجيل الأنشطة للمستخدمين المصادق عليهم
+    match /activities/{activityId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // السماح فقط للمسؤولين والمالكين بإنشاء منشورات المنتدى
+    match /forum_posts/{postId} {
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'owner'];
+      // السماح بتعديل التعليقات فقط لأي مستخدم مصادق عليه
+      allow update: if request.auth != null &&
+        (
+          !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['title', 'content', 'category', 'author', 'userId', 'attachments'])) ||
+          // أو السماح لصاحب المنشور أو مسؤول/مالك بتعديل أي شيء
+          resource.data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'owner']
+        );
+      // السماح بحذف التعليقات فقط لصاحب التعليق أو مسؤول/مالك
+      allow delete: if request.auth != null && (
+        // حذف التعليق الخاص بالمستخدم
+        resource.data.comments.size() > 0 && resource.data.comments[0].userId == request.auth.uid ||
+        // حذف أي منشور أو تعليق بواسطة مسؤول/مالك
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'owner']
+      );
+      allow read: if true;
+    }
+
+    // منع الكتابة لأي مجموعات أخرى غير محددة صراحةً
+    match /{document=**} {
+      allow write: if false;
+    }
+  }
+}

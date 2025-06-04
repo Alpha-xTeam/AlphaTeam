@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+ 
   define: {
     global: {},
     'process.env': {},
@@ -18,10 +19,23 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/mega-api/, ''),
       },
-      '/api/chat': {
-        target: 'https://openrouter.ai/api/v1/chat',
+      '/deepseek-api': {
+        target: 'https://api.deepseek.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/chat/, ''),
+        rewrite: (path) => path.replace(/^\/deepseek-api/, ''),
+      },
+      '/puter-api': {
+        target: 'https://js.puter.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/puter-api/, ''),
+      },
+    },
+  },
+  base: mode === 'development' ? '/' : '/AlphaTeam/', // تعديل المسار بناءً على الوضع
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // لمنع تقسيم الملفات
       },
     },
   },
@@ -38,7 +52,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: [
       'firebase/app',
-      'megajs', // Add megajs here
+      'megajs',
       '@radix-ui/react-tabs',
       '@radix-ui/react-select',
     ],

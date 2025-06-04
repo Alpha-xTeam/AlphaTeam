@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { LogIn, UserPlus, Trash2, Ban, CheckCircle2, Eye, Globe } from 'lucide-react'; // Import icons
-import { Badge } from '@/components/ui/badge'; // Assuming you have a Badge component
+import { ar } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LogIn, UserPlus, Trash2, Ban, CheckCircle2, 
+  FileText, BookOpen, Edit, AlertCircle 
+} from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -14,39 +20,18 @@ interface Activity {
   username?: string;
   ipAddress?: string;
   details?: string;
-  timestamp: any; // Firebase Timestamp
+  subjectName?: string;
+  lectureTitle?: string;
+  stageName?: string;
+  timestamp: Timestamp;
 }
 
 const ActivityLog = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Helper function to get icon and color based on activity type
-  const getActivityTypeDisplay = (type: string) => {
-    switch (type) {
-      case 'login':
-        return { icon: <LogIn className="h-4 w-4 mr-2" />, text: 'تسجيل دخول', color: 'bg-blue-500' };
-      case 'google_login':
-        return { icon: <Globe className="h-4 w-4 mr-2" />, text: 'تسجيل دخول (جوجل)', color: 'bg-blue-600' };
-      case 'register':
-        return { icon: <UserPlus className="h-4 w-4 mr-2" />, text: 'تسجيل جديد', color: 'bg-green-500' };
-      case 'google_register':
-        return { icon: <Globe className="h-4 w-4 mr-2" />, text: 'تسجيل جديد (جوجل)', color: 'bg-green-600' };
-      case 'delete_user':
-        return { icon: <Trash2 className="h-4 w-4 mr-2" />, text: 'حذف مستخدم', color: 'bg-red-500' };
-      case 'ban_user':
-        return { icon: <Ban className="h-4 w-4 mr-2" />, text: 'حظر مستخدم', color: 'bg-yellow-500' };
-      case 'unban_user':
-        return { icon: <CheckCircle2 className="h-4 w-4 mr-2" />, text: 'إلغاء حظر', color: 'bg-teal-500' };
-      case 'page_view':
-        return { icon: <Eye className="h-4 w-4 mr-2" />, text: 'زيارة صفحة', color: 'bg-gray-500' };
-      case 'user_visit':
-        return { icon: <Eye className="h-4 w-4 mr-2" />, text: 'زيارة مستخدم', color: 'bg-purple-500' };
-      default:
-        return { icon: null, text: type, color: 'bg-gray-400' };
-    }
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'activities'), orderBy('timestamp', 'desc'));
@@ -60,61 +45,140 @@ const ActivityLog = () => {
       setLoading(false);
     }, (err) => {
       console.error("Error fetching activities:", err);
-      setError("فشل في جلب سجلات الأنشطة.");
+      setError("فشل في جلب سجلات الأنشطة");
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
-    return <p className="text-center text-muted-foreground">جاري تحميل سجلات الأنشطة...</p>;
-  }
+  const getActivityTypeInfo = (type: string) => {
+    const types = {
+      'register': { icon: UserPlus, color: 'bg-green-500', text: 'تسجيل حساب جديد' },
+      'add_lecture': { icon: FileText, color: 'bg-blue-500', text: 'إضافة محاضرة' },
+      'delete_lecture': { icon: Trash2, color: 'bg-red-500', text: 'حذف محاضرة' },
+      'add_subject': { icon: BookOpen, color: 'bg-purple-500', text: 'إضافة مادة' },
+      'delete_subject': { icon: Trash2, color: 'bg-red-500', text: 'حذف مادة' },
+      'update_lecture': { icon: Edit, color: 'bg-yellow-500', text: 'تعديل محاضرة' },
+      'update_subject': { icon: Edit, color: 'bg-yellow-500', text: 'تعديل مادة' },
+      'delete_user_by_admin': { icon: Trash2, color: 'bg-red-500', text: 'حذف مستخدم' },
+      'ban_user_by_admin': { icon: Ban, color: 'bg-red-500', text: 'حظر مستخدم' },
+      'unban_user': { icon: CheckCircle2, color: 'bg-green-500', text: 'إلغاء حظر مستخدم' }
+    };
+    return types[type] || { icon: AlertCircle, color: 'bg-gray-500', text: type };
+  };
 
-  if (error) {
-    return <p className="text-center text-red-500">{error}</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">سجل نشاطات الموقع</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {activities.length === 0 ? (
-          <p className="text-center text-muted-foreground">لا توجد نشاطات لعرضها.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>المستخدم</TableHead>
-                  <TableHead>التفاصيل</TableHead>
-                  <TableHead>عنوان IP</TableHead>
-                  <TableHead>الوقت</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activities.map((activity) => (
-                  <TableRow key={activity.id}>
-                    <TableCell className="font-medium">
-                      <Badge className={`flex items-center justify-center ${getActivityTypeDisplay(activity.type).color}`}>
-                        {getActivityTypeDisplay(activity.type).icon}
-                        {getActivityTypeDisplay(activity.type).text}
+      <CardContent className="p-0">
+        <div className="divide-y divide-border">
+          <AnimatePresence>
+            {activities.map((activity) => {
+              const typeInfo = getActivityTypeInfo(activity.type);
+              const Icon = typeInfo.icon;
+
+              return (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="p-4 hover:bg-accent/50 transition-colors"
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedActivity(activity);
+                      setDialogOpen(true);
+                    }}
+                    className="w-full text-right"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Badge className={`${typeInfo.color} p-2`}>
+                        <Icon className="h-4 w-4 text-white" />
                       </Badge>
-                    </TableCell>
-                    <TableCell>{activity.username || activity.userId || <span className="text-muted-foreground">غير معروف</span>}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{activity.details || <span className="text-muted-foreground">لا توجد تفاصيل</span>}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{activity.ipAddress || 'غير متوفر'}</TableCell>
-                    <TableCell className="text-sm">{activity.timestamp ? format(activity.timestamp.toDate(), 'yyyy-MM-dd HH:mm:ss') : 'N/A'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                      <div className="flex-1">
+                        <p className="font-semibold text-foreground">{typeInfo.text}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(activity.timestamp.toDate(), 'PPpp', { locale: ar })}
+                        </p>
+                        {activity.details && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                            {activity.details}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </CardContent>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold mb-4">تفاصيل النشاط</DialogTitle>
+          </DialogHeader>
+          {selectedActivity && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="font-semibold text-primary">نوع النشاط</p>
+                  <p>{getActivityTypeInfo(selectedActivity.type).text}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-semibold text-primary">المستخدم</p>
+                  <p>{selectedActivity.username || 'غير معروف'}</p>
+                </div>
+              </div>
+
+              {selectedActivity.subjectName && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-primary">المادة</p>
+                  <p>{selectedActivity.subjectName}</p>
+                </div>
+              )}
+
+              {selectedActivity.lectureTitle && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-primary">المحاضرة</p>
+                  <p>{selectedActivity.lectureTitle}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="font-semibold text-primary">التفاصيل</p>
+                <p>{selectedActivity.details || 'لا توجد تفاصيل إضافية'}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-semibold text-primary">الوقت</p>
+                <p>{format(selectedActivity.timestamp.toDate(), 'PPpp', { locale: ar })}</p>
+              </div>
+
+              {selectedActivity.ipAddress && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-primary">عنوان IP</p>
+                  <p className="font-mono">{selectedActivity.ipAddress}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setDialogOpen(false)}>إغلاق</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

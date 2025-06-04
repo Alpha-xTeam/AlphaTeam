@@ -1,34 +1,36 @@
 // Gofile.io API configuration
-const GOFILE_ACCOUNT_ID = import.meta.env.VITE_GOFILE_ACCOUNT_ID || '81df073f-ee7a-4439-9f3e-3927adf1a356';
-const GOFILE_ACCOUNT_TOKEN = import.meta.env.VITE_GOFILE_ACCOUNT_TOKEN || 'ADCgHPd8aWmNV0h2Sxr5rEeEDFYLyTFW';
+const GOFILE_API_URL = 'https://api.gofile.io';
 
-// Lecture Management Functions
 export const uploadFileToGofile = async (file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }> => {
-  const uploadUrl = `https://upload.gofile.io/uploadFile`; // Use global upload endpoint
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('accountId', GOFILE_ACCOUNT_ID);
-  formData.append('token', GOFILE_ACCOUNT_TOKEN);
-
   try {
-    const response = await fetch(uploadUrl, {
+    // Upload directly to GoFile without getting server first
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const uploadResponse = await fetch('https://store4.gofile.io/uploadFile', {
       method: 'POST',
       body: formData,
     });
-    const data = await response.json(); // Assume JSON response
-    if (data.status === 'ok') {
-      const fileId = data.data.id; // Use 'id' for fileId
-      const fileName = data.data.name; // Use 'name' for fileName
-      const fileUrl = data.data.downloadPage; // Use 'downloadPage' for fileUrl
-      return { fileId, fileName, fileUrl };
-    } else {
-      console.error('Gofile upload failed with status:', data.status, 'Data:', data);
-      throw new Error(`Failed to upload file to Gofile: ${data.status}`);
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
     }
+
+    const uploadData = await uploadResponse.json();
+    console.log('GoFile API Response:', uploadData); // For debugging
+
+    if (uploadData.status !== 'ok' || !uploadData.data) {
+      throw new Error('Upload failed: ' + JSON.stringify(uploadData));
+    }
+
+    return {
+      fileId: uploadData.data.fileId || uploadData.data.id,
+      fileName: uploadData.data.fileName || uploadData.data.name,
+      fileUrl: uploadData.data.downloadPage || uploadData.data.url
+    };
   } catch (error) {
-    console.error('Error uploading file to Gofile:', error);
-    throw error;
+    console.error('Error in uploadFileToGofile:', error);
+    throw new Error(`Failed to upload file: ${error.message}`);
   }
 };
 
@@ -36,7 +38,7 @@ export const deleteGofileFile = async (fileId: string) => {
   const deleteUrl = 'https://api.gofile.io/deleteContent';
   const formData = new FormData();
   formData.append('contentsId', fileId);
-  formData.append('token', GOFILE_ACCOUNT_TOKEN);
+  formData.append('token', "ADcGHPd8aWmNV0h2Sxr5rEeEDFYLyTFW");
 
   try {
     const response = await fetch(deleteUrl, {
@@ -45,12 +47,12 @@ export const deleteGofileFile = async (fileId: string) => {
     });
     const data = await response.json();
     if (data.status === 'ok') {
-      console.log(`File ${fileId} deleted from Gofile.`);
+      console.log(`File ${fileId} deleted from GoFile.`);
     } else {
-      throw new Error(`Failed to delete file from Gofile: ${data.status}`);
+      throw new Error(`Failed to delete file from GoFile: ${data.status}`);
     }
   } catch (error) {
-    console.error('Error deleting file from Gofile:', error);
+    console.error('Error deleting file from GoFile:', error);
     throw error;
   }
 };

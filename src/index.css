@@ -105,6 +105,314 @@
   body {
     @apply font-sans bg-background text-foreground;
     font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
+/* تحسين الصور */
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* تحسين عرض الصور في البطاقات */
+.card-image {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 66.67%; /* نسبة 3:2 */
+  overflow: hidden;
+  background-color: hsl(var(--muted));
+}
+
+.card-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* تحسين عرض الصور في النوافذ المنبثقة */
+.dialog-image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  max-height: 80vh;
+  background-color: hsl(var(--muted));
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.dialog-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+/* تحسينات زر الإعجاب */
+.like-button {
+  @apply transition-all duration-300 ease-in-out rounded-full px-3 border border-border/40 bg-background/95 shadow-sm hover:shadow hover:border-primary/30 hover:bg-background;
+}
+
+.like-button:hover {
+  @apply bg-background;
+}
+
+.like-button:active {
+  @apply transform scale-90;
+}
+
+@media (max-width: 768px) {
+  .card-image {
+    padding-bottom: 75%; /* نسبة 4:3 للشاشات الصغيرة */
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  
+  .dialog-image {
+    padding: 0.5rem;
+    background: hsl(var(--muted));
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    max-height: 60vh;
+    box-sizing: border-box;
+    overflow: hidden; /* Ensure content doesn't overflow */
+  }
+
+  .dialog-image img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 220px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.13);
+    border: 1px solid hsl(var(--border));
+    display: block;
+    margin: 0 auto;
+    transition: transform 0.3s ease;
+  }
+
+  body {
+    font-size: 15px; /* حجم خط أصغر قليلاً للموبايل */
+  }
+
+  /* تحسين البطاقات على الموبايل */
+  .dashboard-card {
+    @apply p-4 rounded-lg;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ترتيب العناصر في البطاقات */
+  .card-header {
+    order: 1;
+  }
+
+  .card-content {
+    order: 2;
+    margin-bottom: 1rem;
+  }
+
+  .card-image {
+    order: 3;
+    margin-top: 1rem;
+    padding-bottom: 60%; /* نسبة أقل للصورة على الموبايل */
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  /* تحسين المسافات والهوامش */
+  .card-title {
+    margin-bottom: 0.5rem;
+  }
+
+  .card-description {
+    margin-bottom: 0.5rem; /* تقليل الهامش السفلي */
+  }
+
+  .card > * {
+    width: 100%;
+  }
+
+  .card-image img {
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    border: 1px solid hsl(var(--border));
+    margin-bottom: 0.5rem;
+    object-fit: cover;
+    object-position: center;
+    background: #fff;
+  }
+
+  .dialog-image img {
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.13);
+    border: 1px solid hsl(var(--border));
+    margin-bottom: 0.5rem;
+    object-fit: cover;
+    object-position: center;
+    background: #fff;
+  }
+
+  /* Prevent images from overflowing their containers */
+  .card-image img,
+  .dialog-image img {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0; /* Remove margin that may cause overflow */
+    display: block;
+  }
+}
+
+/* تحسين عرض الصور في النوافذ المنبثقة */
+@media (max-width: 768px) {
+  .dialog-image {
+    position: relative;
+    width: 100%;
+    min-height: 250px;
+    background-color: hsl(var(--muted));
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Ensure content doesn't overflow */
+  }
+
+  .dialog-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+}
+
+/* إصلاح ناف بار الأدوات للأجهزة المحمولة */
+@media (max-width: 767px) {
+  .navbar-tools {
+    display: none; /* إخفاء القائمة افتراضيًا */
+    flex-direction: column;
+    align-items: flex-start;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: hsl(var(--background));
+    z-index: 1000;
+    padding: 1rem;
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .navbar-tools.active {
+    display: flex; /* إظهار القائمة عند تفعيلها */
+  }
+
+  .navbar-tools .tool-item {
+    padding: 10px;
+    border-bottom: 1px solid hsl(var(--border));
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .navbar-tools-toggle {
+    display: block;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+}
+
+/* اجعل الصورة بعد المحتوى في نافذة التفاصيل على الشاشات الصغيرة */
+@media (max-width: 767px) {
+  .news-detail-flex {
+    flex-direction: column-reverse !important;
+  }
+}
+
+/* تحسين مظهر النوافذ المنبثقة على الأجهزة المحمولة */
+@media (max-width: 640px) {
+  .dialog-content {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: auto; /* Allow content to determine height */
+    max-height: 100vh;
+    border-radius: 0; /* Remove border-radius for full screen */
+    overflow: auto; /* Enable scrolling if content overflows */
+  }
+}
+
+@media (max-width: 380px) {
+  body {
+    font-size: 14px;
+  }
+
+  .container {
+    @apply px-3;
+  }
+
+  .timeline-dot {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1rem;
+  }
+
+  .dashboard-card {
+    @apply p-3 rounded-md;
+  }
+}
+
+/* تحسين الجداول */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+}
+
+/* تحسين التخطيط */
+.container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* تحسين الشبكات */
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
@@ -142,4 +450,202 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--primary); /* Use primary on hover */
+}
+
+/* تحسينات لوحة التحكم */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* تحسين الجداول في لوحة التحكم */
+.admin-dashboard-table {
+  @apply w-full border-collapse;
+}
+
+.admin-dashboard-table th {
+  @apply bg-muted/50 text-muted-foreground font-semibold px-4 py-3 text-right;
+}
+
+.admin-dashboard-table td {
+  @apply px-4 py-3 border-b border-border;
+}
+
+/* تحسين البطاقات */
+.dashboard-card {
+  @apply rounded-xl border border-border bg-background/80 text-foreground shadow-md transition-all hover:shadow-xl hover:border-primary/60;
+  transition: transform 0.2s cubic-bezier(.4,2,.6,1);
+}
+
+/* تحسين الأزرار */
+.dashboard-button {
+  @apply bg-primary text-white shadow-lg hover:bg-primary/90 focus:ring-4 focus:ring-primary/30;
+}
+
+/* تحسين الرسوم البيانية */
+.recharts-wrapper {
+  @apply !font-sans;
+}
+
+.recharts-tooltip {
+  @apply !bg-background !border !border-border !rounded-lg !shadow-lg !p-2;
+}
+
+/* تحسين الخط الزمني */
+.timeline {
+  @apply relative border-s-2 border-primary/20 ml-4;
+}
+.timeline li {
+  @apply mb-6 ms-6;
+}
+.timeline span {
+  @apply absolute -start-3 flex items-center justify-center w-6 h-6 bg-primary rounded-full ring-4 ring-background;
+}
+
+/* خط زمني أنيق للأنشطة */
+.timeline-custom {
+  position: relative;
+  margin-right: 0.5rem;
+  padding-right: 2.5rem; /* تم زيادة المسافة من اليمين */
+  border-right: 2px solid hsl(var(--primary) / 0.15);
+  list-style: none;
+}
+.timeline-custom::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  right: -1px; /* تغيير الموضع إلى اليمين */
+  width: 2px;
+  height: calc(100% - 1rem);
+  background: linear-gradient(to bottom, hsl(var(--primary) / 0.15), transparent 80%);
+  z-index: 0;
+  border-radius: 1px;
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 2.2rem;
+  padding-right: 2rem; /* زيادة المسافة من اليمين */
+  text-align: right; /* محاذاة النص إلى اليمين */
+}
+.timeline-dot {
+  position: absolute;
+  right: -2.8rem; /* تغيير الموضع إلى اليمين */
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: hsl(var(--primary));
+  color: white;
+  font-size: 1rem;
+}
+
+/* تحسين التخطيط على الشاشات الصغيرة */
+@media (max-width: 640px) {
+  .timeline-custom {
+    margin-right: 0.25rem;
+    padding-right: 2rem;
+  }
+  
+  .timeline-dot {
+    right: -2.3rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+.custom-swiper-arrow {
+  opacity: 0.85;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+.custom-swiper-arrow:hover {
+  opacity: 1;
+  box-shadow: 0 4px 16px 0 rgba(0,0,0,0.10);
+}
+@media (max-width: 768px) {
+  .custom-swiper-arrow {
+    width: 36px;
+    height: 36px;
+    padding: 0.5rem;
+  }
+}
+
+/* منع لقطات الشاشة (قد لا يعمل في كل المتصفحات) */
+.no-screenshot, .challenges-root {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  /* محاولة تشويش النص عند الطباعة أو الالتقاط */
+  text-shadow: 0 0 8px #000, 0 0 8px #fff;
+  /* يمكن إضافة overlay شفاف */
+  position: relative;
+}
+.no-screenshot::after, .challenges-root::after {
+  content: "";
+  display: block;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 8px);
+  z-index: 10;
+}
+
+@media (max-width: 767px) {
+  .card,
+  .rounded-3xl,
+  .rounded-2xl {
+    border-radius: 1rem !important;
+  }
+  .card-header,
+  .card-content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  .challenges-root,
+  .challenges-main {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  .challenges-root h1,
+  .challenges-root h2 {
+    font-size: 1.5rem !important;
+  }
+  .challenges-root .text-5xl,
+  .challenges-root .text-6xl {
+    font-size: 2rem !important;
+  }
+  .challenges-root .p-16 {
+    padding: 2rem !important;
+  }
+  .challenges-root .p-8 {
+    padding: 1rem !important;
+  }
+  .challenges-root .rounded-3xl {
+    border-radius: 1rem !important;
+  }
+  .challenges-root .rounded-2xl {
+    border-radius: 0.75rem !important;
+  }
+  .challenges-root .space-y-8 {
+    gap: 1.5rem !important;
+  }
+  .challenges-root .space-y-12 {
+    gap: 2rem !important;
+  }
 }
