@@ -34,6 +34,9 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.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 }}
-          publish_dir: ./dist # The directory where your built files are located (Vite's default is 'dist')
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: ./dist
+        env:
+            ACTIONS_STEP_DEBUG: true
+  # The directory where your built files are located (Vite's default is 'dist')
           # cname: example.com # Optional: If you have a custom domain, replace example.com with your domain
