@@ -31,4 +31,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist # The directory where your built files are located (Vite's default is 'dist')
-          cname: example.com # Optional: If you have a custom domain, replace example.com with your domain
+          # cname: example.com # Optional: If you have a custom domain, replace example.com with your domain
